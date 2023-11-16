@@ -3,3 +3,4 @@ requests==2.26.0
 selenium==4.7.2
 selenium_wire==4.5.4
 webdriver_manager==3.5.1
+xlsxwriter==3.1.9

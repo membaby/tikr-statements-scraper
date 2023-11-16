@@ -4,16 +4,19 @@ from seleniumwire import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 import time
 import keys
 import pandas as pd
 import datetime
 import os
 
+from config import TIKR_ACCOUNT_USERNAME, TIKR_ACCOUNT_PASSWORD
+
 class TIKR:
     def __init__(self):
-        self.username = 'notify.e1@outlook.com'
-        self.password = '123456789'
+        self.username = TIKR_ACCOUNT_USERNAME
+        self.password = TIKR_ACCOUNT_PASSWORD
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0',
             'Accept': 'application/json, text/plain, */*',
@@ -45,7 +48,8 @@ class TIKR:
         user_agent = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.2 (KHTML, like Gecko) Chrome/22.0.1216.0 Safari/537.2'
         chrome_options.add_argument(f'user-agent={user_agent}')
         chrome_options.add_argument('window-size=1920x1080')
-        browser = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+        s = Service(ChromeDriverManager().install())
+        browser = webdriver.Chrome(service=s, options=chrome_options)
         browser.get('https://app.tikr.com/login')
         browser.find_element(By.XPATH, '//input[@type="email"]').send_keys(self.username)
         browser.find_element(By.XPATH, '//input[@type="password"]').send_keys(self.password)
@@ -81,11 +85,11 @@ class TIKR:
             })
             response = requests.request("POST", url, headers=self.headers, data=payload).json()
             if 'dates' not in response:
-                print('[ + ] Generating Access Token')
+                print('[ + ] Generating Access Token...')
                 scraper.getAccessToken()
             else:
                 break
-        print('[ + ] Fetching Statements')
+
         for fiscalyear in response['dates']:
             fiscal_year_data = list(filter(lambda x: x['financialperiodid'] == fiscalyear['financialperiodid'], response['data']))
             year_data = {'income_statement': {}, 'cashflow_statement': {}, 'balancesheet_statement': {}}
@@ -101,7 +105,7 @@ class TIKR:
                         if cash_from_ops and capital_expen:
                             data[column] = float(cash_from_ops[0]['dataitemvalue']) + float(capital_expen[0]['dataitemvalue'])
                         continue
-                    elif column == '% Free Cash Flow Margins':
+                    elif column == '% Free Cash Flow Margins' and 'Free Cash Flow' in data:
                         FCF = data['Free Cash Flow']
                         revenue = list(filter(lambda x: x['dataitemid'] == self.statements[0]['keys']['Revenues'], fiscal_year_data))
                         if revenue:
@@ -114,7 +118,10 @@ class TIKR:
                             ACCESS_DENIED += 1
                             data[column] = ''
                         else:
-                            data[column] = float(value[0]['dataitemvalue'])
+                            if column in ['Income Tax Expense']:
+                                data[column] = float(value[0]['dataitemvalue']) * -1
+                            else:
+                                data[column] = float(value[0]['dataitemvalue'])
                     else:
                         data[column] = ''
                 if ACCESS_DENIED > 10: continue
@@ -124,18 +131,22 @@ class TIKR:
             for idx, fiscalyear in enumerate(self.content[statement['statement']][:-1]):
                 for column in fiscalyear:
                     if 'YoY' in column:
-                        if self.content[statement['statement']][idx - 1][column.replace(' YoY', '')]:
-                            if not fiscalyear[column.replace(' YoY', '')] or not self.content[statement['statement']][idx - 1][column.replace(' YoY', '')]: continue
-                            current_value = float(fiscalyear[column.replace(' YoY', '')])
-                            old_value = float(self.content[statement['statement']][idx - 1][column.replace(' YoY', '')])
-                            if old_value and old_value != 0:
-                                fiscalyear[column] = round(abs(100 - (current_value / old_value) * 100), 2)
+                        try:
+                            if self.content[statement['statement']][idx - 1][column.replace(' YoY', '')]:
+                                if not column.replace(' YoY', '') not in fiscalyear or fiscalyear[column.replace(' YoY', '')] or not self.content[statement['statement']][idx - 1][column.replace(' YoY', '')]: continue
+                                current_value = float(fiscalyear[column.replace(' YoY', '')])
+                                old_value = float(self.content[statement['statement']][idx - 1][column.replace(' YoY', '')])
+                                if old_value and old_value != 0:
+                                    fiscalyear[column] = round(abs(100 - (current_value / old_value) * 100), 2)
+                        except:
+                            pass
     
     def find_company_info(self, ticker):
         headers = self.headers.copy()
         headers['content-type'] = 'application/x-www-form-urlencoded'
         data = '{"params":"query=' + ticker + '&distinct=2"}'
         response = requests.post('https://tjpay1dyt8-3.algolianet.com/1/indexes/tikr-feb/query?x-algolia-agent=Algolia%20for%20JavaScript%20(3.35.1)%3B%20Browser%20(lite)&x-algolia-application-id=TJPAY1DYT8&x-algolia-api-key=d88ea2aa3c22293c96736f5ceb5bab4e', headers=headers, data=data)
+        
         if response.json()['hits']:
             tid = response.json()['hits'][0]['tradingitemid']
             cid = response.json()['hits'][0]['companyid']
@@ -150,6 +161,7 @@ class TIKR:
                 if not self.content[statement]: continue
                 columns = list(self.content[statement][0].keys())
                 years = [x['year'] for x in self.content[statement]]
+                years[-1] = 'LTM'
                 df = pd.DataFrame(self.content[statement], columns=columns, index=years)
                 df = df.drop(columns='year')
                 df.T.to_excel(writer, sheet_name=statement)
@@ -177,16 +189,22 @@ class bcolors:
 if __name__ == '__main__':
     scraper = TIKR()
     print(f'[ . ] TIKR Statements Scraper: {bcolors.OKGREEN}Ready{bcolors.ENDC}')
+    companies = []
+
     user_input_1 = input(f'{bcolors.WARNING}[...]{bcolors.ENDC} Please enter ticker symbol or company name: ')
     tid, cid = scraper.find_company_info(user_input_1)
     if not (tid and cid):
         print(f'[ - ] {bcolors.FAIL}[Error]{bcolors.ENDC}: Could not find company')
         exit()
     print(f'[ . ] {bcolors.OKGREEN}Found company{bcolors.ENDC}: {user_input_1} [Trading ID: {tid}] [Company ID: {cid}]')
-    print('[ . ] Starting scraping...')
-    scraper.getFinancials(tid, cid)
-    print('[ + ] Exporting Statements')
+    companies.append((user_input_1, tid, cid))
 
-    filename = user_input_1 + '_' + datetime.datetime.now().strftime('%Y-%m-%d') + '.xlsx'
-    scraper.export(filename)
-    print(f'[ . ] {bcolors.OKGREEN}[Done]{bcolors.ENDC}: Exported to', filename)
+    print('[ . ] Starting scraping...')
+    for company in companies:
+        scraper = TIKR()
+        scraper.getFinancials(company[1], company[2])
+        filename = company[0] + '_' + datetime.datetime.now().strftime('%Y-%m-%d') + '.xlsx'
+        scraper.export(filename)
+        print(f'[ + ] {bcolors.OKGREEN}Exported{bcolors.ENDC}: {filename}')
+
+    print(f'[ . ] Done')
