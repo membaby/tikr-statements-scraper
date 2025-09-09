@@ -1,16 +1,20 @@
-import requests
+"""Scrape financial statements from TIKR and export to Excel."""
+
+import argparse
+import datetime
 import json
+import os
+import time
+
+import pandas as pd
+import requests
 from seleniumwire import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-import time
-import keys
-import pandas as pd
-import datetime
-import os
+from selenium.webdriver.common.by import By
 
+import keys
 from config import TIKR_ACCOUNT_USERNAME, TIKR_ACCOUNT_PASSWORD
 
 class TIKR:
@@ -35,14 +39,18 @@ class TIKR:
         }
         self.column_names = keys.keys
         self.statements = keys.statements
-        self.content = {'income_statement': [], 'cashflow_statement': [], 'balancesheet_statement': []}
+        self.content = {
+            'income_statement': [],
+            'cashflow_statement': [],
+            'balancesheet_statement': [],
+        }
         if os.path.isfile('token.tmp'):
             with open('token.tmp', 'r') as f:
-                self.ACCESS_TOKEN = f.read()
+                self.access_token = f.read()
         else:
-            self.ACCESS_TOKEN = ''
+            self.access_token = ''
 
-    def getAccessToken(self):
+    def get_access_token(self):
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         user_agent = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.2 (KHTML, like Gecko) Chrome/22.0.1216.0 Safari/537.2'
@@ -65,18 +73,18 @@ class TIKR:
                 if 'amazonaws.com/prod/fs' in request.url and request.method == 'POST':
                     response = json.loads(request.body)
                     print('[ * ] Successfully fetched access token')
-                    self.ACCESS_TOKEN = response['auth']
+                    self.access_token = response['auth']
                     with open('token.tmp', 'w') as f:
-                        f.write(self.ACCESS_TOKEN)
+                        f.write(self.access_token)
         except Exception as err:
             print(err)
         browser.close()
 
-    def getFinancials(self, tid, cid):
+    def get_financials(self, tid, cid):
         url = "https://oljizlzlsa.execute-api.us-east-1.amazonaws.com/prod/fin"
         while True:
             payload = json.dumps({
-                "auth": self.ACCESS_TOKEN,
+                "auth": self.access_token,
                 "tid": tid,
                 "cid": cid,
                 "p": "1",
@@ -86,7 +94,7 @@ class TIKR:
             response = requests.request("POST", url, headers=self.headers, data=payload).json()
             if 'dates' not in response:
                 print('[ + ] Generating Access Token...')
-                scraper.getAccessToken()
+                self.get_access_token()
             else:
                 break
 
@@ -186,25 +194,43 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-if __name__ == '__main__':
+
+def main():
+    """Command line entry point for the scraper."""
+    parser = argparse.ArgumentParser(
+        description="Scrape TIKR financial statements to an Excel file",
+    )
+    parser.add_argument(
+        "query",
+        nargs="?",
+        help="Company name or ticker symbol",
+    )
+    args = parser.parse_args()
+
+    query = args.query or input(
+        f'{bcolors.WARNING}[...]{bcolors.ENDC} Please enter ticker symbol or company name: '
+    )
+
     scraper = TIKR()
     print(f'[ . ] TIKR Statements Scraper: {bcolors.OKGREEN}Ready{bcolors.ENDC}')
-    companies = []
-
-    user_input_1 = input(f'{bcolors.WARNING}[...]{bcolors.ENDC} Please enter ticker symbol or company name: ')
-    tid, cid = scraper.find_company_info(user_input_1)
+    tid, cid = scraper.find_company_info(query)
     if not (tid and cid):
         print(f'[ - ] {bcolors.FAIL}[Error]{bcolors.ENDC}: Could not find company')
-        exit()
-    print(f'[ . ] {bcolors.OKGREEN}Found company{bcolors.ENDC}: {user_input_1} [Trading ID: {tid}] [Company ID: {cid}]')
-    companies.append((user_input_1, tid, cid))
+        return
+    print(
+        f'[ . ] {bcolors.OKGREEN}Found company{bcolors.ENDC}: {query} '
+        f'[Trading ID: {tid}] [Company ID: {cid}]'
+    )
 
     print('[ . ] Starting scraping...')
-    for company in companies:
-        scraper = TIKR()
-        scraper.getFinancials(company[1], company[2])
-        filename = company[0] + '_' + datetime.datetime.now().strftime('%Y-%m-%d') + '.xlsx'
-        scraper.export(filename)
-        print(f'[ + ] {bcolors.OKGREEN}Exported{bcolors.ENDC}: {filename}')
-
+    scraper.get_financials(tid, cid)
+    filename = (
+        query + '_' + datetime.datetime.now().strftime('%Y-%m-%d') + '.xlsx'
+    )
+    scraper.export(filename)
+    print(f'[ + ] {bcolors.OKGREEN}Exported{bcolors.ENDC}: {filename}')
     print(f'[ . ] Done')
+
+
+if __name__ == '__main__':
+    main()
