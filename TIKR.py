@@ -17,6 +17,7 @@ import pandas as pd
 import keys
 from config import TIKR_ACCOUNT_USERNAME, TIKR_ACCOUNT_PASSWORD, TIKR_EXPORT_FORMAT
 
+
 class TIKR:
     def __init__(self):
         self.username = TIKR_ACCOUNT_USERNAME
@@ -52,7 +53,8 @@ class TIKR:
     def get_access_token(self):
         chrome_options = Options()
         chrome_options.add_argument("--headless")
-        user_agent = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.2 (KHTML, like Gecko) Chrome/22.0.1216.0 Safari/537.2'
+        user_agent = ('Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.2 (KHTML, like Gecko) '
+                      'Chrome/22.0.1216.0 Safari/537.2')
         chrome_options.add_argument(f'user-agent={user_agent}')
         chrome_options.add_argument('window-size=1920x1080')
         s = Service(ChromeDriverManager().install())
@@ -365,13 +367,17 @@ class TIKR:
                                 fiscalyear[column] = ''
                         else:
                             fiscalyear[column] = ''
-    
+
     def find_company_info(self, ticker):
         headers = self.headers.copy()
         headers['content-type'] = 'application/x-www-form-urlencoded'
         data = '{"params":"query=' + ticker + '&distinct=2"}'
-        response = requests.post('https://tjpay1dyt8-3.algolianet.com/1/indexes/tikr-feb/query?x-algolia-agent=Algolia%20for%20JavaScript%20(3.35.1)%3B%20Browser%20(lite)&x-algolia-application-id=TJPAY1DYT8&x-algolia-api-key=d88ea2aa3c22293c96736f5ceb5bab4e', headers=headers, data=data)
-        
+        url = ('https://tjpay1dyt8-3.algolianet.com/1/indexes/tikr-feb/query?'
+               'x-algolia-agent=Algolia%20for%20JavaScript%20(3.35.1)%3B%20Browser%20'
+               '(lite)&x-algolia-application-id=TJPAY1DYT8&'
+               'x-algolia-api-key=d88ea2aa3c22293c96736f5ceb5bab4e')
+        response = requests.post(url, headers=headers, data=data)
+
         if response.json()['hits']:
             tid = response.json()['hits'][0]['tradingitemid']
             cid = response.json()['hits'][0]['companyid']
@@ -440,13 +446,13 @@ class TIKR:
         elif export_format == 'parquet':
             for statement_name, df in frames.items():
                 df_out = df.T.reset_index().rename(columns={'index': 'Metric'})
-                
+
                 # Clean up empty strings & enforce numeric where possible
                 df_out = df_out.replace('', pd.NA)
                 df_out = df_out.convert_dtypes()
                 for col in df_out.columns[1:]:
                     df_out[col] = pd.to_numeric(df_out[col], errors='coerce')
-                
+
                 output_path = f"{base_name}_{statement_name}.parquet"
                 try:
                     df_out.to_parquet(output_path, index=False)
@@ -457,6 +463,7 @@ class TIKR:
                 exported_files.append(output_path)
 
         return exported_files
+
 
 class bcolors:
     HEADER = '\033[95m'
@@ -507,7 +514,7 @@ def main():
             print(f'[ + ] {bcolors.OKGREEN}Exported{bcolors.ENDC}: {path}')
     else:
         print(f'[ - ] {bcolors.FAIL}No files exported{bcolors.ENDC}')
-    print(f'[ . ] Done')
+        print('[ . ] Done')
 
 
 if __name__ == '__main__':
