@@ -514,7 +514,7 @@ def main():
             print(f'[ + ] {bcolors.OKGREEN}Exported{bcolors.ENDC}: {path}')
     else:
         print(f'[ - ] {bcolors.FAIL}No files exported{bcolors.ENDC}')
-        print('[ . ] Done')
+    print('[ . ] Done')
 
 
 if __name__ == '__main__':
