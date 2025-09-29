@@ -74,7 +74,7 @@ class TIKR:
         time.sleep(5)
         try:
             for request in browser.requests:
-                if '/fs' in request.url and request.method == 'POST':
+                if 'api.tikr.com/fs' in request.url and request.method == 'POST':
                     response = json.loads(request.body)
                     print('[ * ] Successfully fetched access token')
                     self.access_token = response['auth']
