@@ -1,0 +1,11 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# Local files
+token.tmp
+*.xlsx
+.env
+
+# OS files
+.DS_Store

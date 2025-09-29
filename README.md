@@ -1,198 +1,144 @@
 # TIKR Financial Statements Scraper
-A tool to scrape historical financial statements of companies from TIKR website and have them listed in an excel spreadsheet for a quicker analysis and market research.
 
-## Introduction
-TIKR among the best sites that provide tools for Stock Market Research and Investor Analysis. It has a terminal where users can look for historical financial statements. The purpose of this tool is to have offline copies of the required statements in an easy-to-use spreadsheet that allows investors to make analysis quicker and use their custom formulae easily on the statements tables.
+A Python utility for downloading historical financial statements from [TIKR](https://www.tikr.com) and exporting them in multiple formats.
 
-## Installation & Usage
+## Features
 
-### Pre-requisites:
-- Python 3.x (Download: https://www.python.org/downloads/)
-- Libraries (`pip3 install -r requirements.txt`)
+- **Comprehensive Statement Coverage**: Downloads income statements, cash flow statements, and balance sheets
+- **Multiple Export Formats**: Export to Excel (XLSX), CSV, JSON, or Parquet
+- **Smart Token Caching**: Stores authentication tokens to speed up repeated queries
+- **Automatic Calculations**: Computes year-over-year growth rates, profit margins, and free cash flow metrics
+- **Flexible Data Structure**: Transposed format with metrics as rows and periods as columns for easy analysis
+- **Command Line Interface**: Simple CLI for quick data retrieval
 
-### Set up:
-- Clone the repository (`git clone https://github.com/membaby/tikr-statements-scraper`)
-- Update `config.py` file with your TIKR account credentials.
+## Requirements
 
-### Usage:
-- Run `python3 TIKR.py` (`python TIKR.py` on Windows)
-- Enter the company name (eg. `Apple`) or stock ticker symbol (eg. `AAPL`)
+- Python 3.7+
+- Valid TIKR subscription (free accounts have limited data availability)
+- Chrome/Chromium browser (for authentication)
 
-## Overview
+## Installation
 
-### Scraping Process
-1. User enters company name or stock ticker symbol.
-2. Script generates access token and stores it locally in `token.tmp` for quicker scraping in case multiple companies financial statements are required.
-3. Script uses the generated access token to fetch the historical statements of desired company.
-4. Script creates a new excel spreadsheet.
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/membaby/tikr-statements-scraper
+   cd tikr-statements-scraper
+   ```
 
-### Steps Visualization
-![Steps Visualization](steps-visualization.gif)
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### Data 
-Please refer to `./sample-outputs/` folder for data samples.
+3. Configure your credentials in `config.py`:
+   ```python
+   TIKR_ACCOUNT_USERNAME = 'your_username'
+   TIKR_ACCOUNT_PASSWORD = 'your_password'
+   TIKR_EXPORT_FORMAT = 'xlsx'  # Options: 'xlsx', 'csv', 'json', 'parquet'
+   ```
 
-1. Income Statements
-```
-Revenues
-Total Revenues
-Total Revenues YoY
-Cost of Goods Sold
-Gross Profit
-Gross Profit YoY
-% Gross Margins
-Selling General & Admin Expenses
-R&D Expenses
-Total Operating Expenses
-Operating Income
-Operating Income YoY
-% Operating Margins
-Interest Expense
-Interest And Investment Income
-Currency Exchange Gains (Loss)
-Other Non Operating Income (Expenses)
-EBT Excl. Unusual Items
-Gain (Loss) On Sale Of Investments
-Gain (Loss) On Sale Of Assets
-Asset Writedown
-In Process R&D Expenses
-Legal Settlements
-Other Unusual Items
-EBT Incl. Unusual Items
-Income Tax Expense
-Earnings From Continuing Operations
-Earnings Of Discontinued Operations
-Net Income to Company
-Net Income
-Net Income to Common Incl Extra Items
-% Net Income to Common Incl Extra Items Margins
-Net Income to Common Excl. Extra Items
-% Net Income to Common Excl. Extra Items Margins
-Diluted EPS Excl Extra Items
-Diluted EPS Excl Extra Items YoY
-Weighted Average Diluted Shares Outstanding
-Weighted Average Diluted Shares Outstanding YoY
-Weighted Average Basic Shares Outstanding
-Weighted Average Basic Shares Outstanding YoY
-Basic EPS
-EBITDA
-EBITDA YoY
-EBITDAR
-R&D Expense
-Selling and Marketing Expense
-General and Administrative Expense
-Effective Tax Rate %
+## Usage
+
+### Basic Usage
+
+Run the scraper with a ticker symbol or company name:
+
+```bash
+python TIKR.py AAPL
 ```
 
-2. Cashflow Statements
-```
-Net Income
-Depreciation & Amortization
-Amortization of Goodwill and Intangible Assets
-Total Depreciation & Amortization
-(Gain) Loss From Sale Of Asset
-(Gain) Loss on Sale of Investments
-Asset Writedown & Restructuring Costs
-Stock-Based Compensation
-Tax Benefit from Stock Options
-Net Cash From Discontinued Operations
-Other Operating Activities
-Change In Accounts Receivable
-Change In Inventories
-Change In Accounts Payable
-Change in Unearned Revenues
-Change In Income Taxes
-Change in Other Net Operating Assets
-Cash from Operations
-Change in Net Working Capital
-Capital Expenditure
-Sale of Property, Plant, and Equipment
-Cash Acquisitions
-Divestitures
-Sale (Purchase) of Intangible assets
-Investment in Marketable and Equity Securities
-Other Investing Activities
-Cash from Investing
-Total Debt Issued
-Total Debt Repaid
-Issuance of Common Stock
-Repurchase of Common Stock
-Other Financing Activities
-Cash from Financing
-Foreign Exchange Rate Adjustments
-Net Change in Cash
-Free Cash Flow
-Free Cash Flow YoY
-% Free Cash Flow Margins
-Cash and Cash Equivalents, Beginning of Period
-Cash and Cash Equivalents, End of Period
-Cash Interest Paid
-Cash Taxes Paid
-Cash Flow per Share
+If no argument is provided, the script will prompt you interactively:
+
+```bash
+python TIKR.py
+# [...] Please enter ticker symbol or company name: AAPL
 ```
 
-3. Balance Sheet Statements
-```
-Cash And Equivalents
-Short Term Investments 
-Total Cash And Short Term Investments 
-Accounts Receivable
-Other Receivables 
-Notes Receivable
-Total Receivables
-Inventory 
-Prepaid Expenses
-Deferred Tax Assets Current
-Restricted Cash
-Other Current Assets 
-Total Current Assets 
-Gross Property Plant And Equipment
-Accumulated Depreciation
-Net Property Plant And Equipment 
-Long-term Investments 
-Goodwill
-Other Intangibles
-Loans Receivable Long-Term 
-Deferred Tax Assets Long-Term 
-Other Long-Term Assets 
-Total Assets 
-Accounts Payable
-Accrued Expenses
-Short-term Borrowings 
-Current Portion of Long-Term Debt
-Current Portion of Capital Lease Obligations
-Current Income Taxes Payable 
-Unearned Revenue Current 
-Other Current Liabilities 
-Total Current Liabilities 
-Long-Term Debt 
-Capital Leases
-Unearned Revenue Non Current
-Deferred Tax Liability Non Current 
-Other Non Current Liabilities 
-Total Liabilities 
-Preferred Stock Convertible 
-Preferred Stock - Others 
-Total Preferred Equity 
-Common Stock
-Additional Paid In Capital
-Retained Earnings
-Comprehensive Income and Other 
-Total Common Equity 
-Total Equity 
-Total Liabilities And Equity 
-Total Shares Out. on Filing Date 
-Book Value/Share 
-Tangible Book Value
-Tangible Book Value/Share 
-Total Debt 
-Net Debt
-Equity Method Investments 
-Land 
-Buildings 
-Construction In Progress 
-Full Time Employees
+### Output Files
+
+Files are saved with the format `<TICKER>_<DATE>.<extension>`:
+
+- **XLSX**: Single file with separate worksheets for each statement
+- **CSV**: Multiple files (one per statement type)
+- **JSON**: Single file with nested structure
+- **Parquet**: Multiple files (one per statement type, optimized for analytics)
+
+Example outputs are available in the [`sample-outputs`](sample-outputs) directory.
+
+## Configuration Options
+
+Edit `config.py` to customize:
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `TIKR_ACCOUNT_USERNAME` | Your TIKR email | - |
+| `TIKR_ACCOUNT_PASSWORD` | Your TIKR password | - |
+| `TIKR_EXPORT_FORMAT` | Output format | `'xlsx'` |
+| `TIKR_FINANCIAL_STATEMENT_FREQUENCY` | Period type ('Y' or 'Q') | `'Q'` |
+
+## Exported Metrics
+
+The scraper automatically extracts and calculates:
+
+### Income Statement
+- Revenue, gross profit, operating income
+- Net income (including/excluding extraordinary items)
+- Profit margins (gross, operating, net)
+- Year-over-year growth rates
+
+### Cash Flow Statement
+- Operating cash flow, investing cash flow, financing cash flow
+- Capital expenditures
+- Free cash flow (calculated)
+- Free cash flow margins
+
+### Balance Sheet
+- Total assets, total liabilities, stockholders' equity
+- Current assets and liabilities
+- Long-term debt
+
+## Development
+
+### Code Quality
+
+The project uses [flake8](https://flake8.pycqa.org/) for linting. GitHub Actions automatically runs the linter on each push.
+
+Run linting locally:
+```bash
+flake8 TIKR.py
 ```
 
-## Notes
-This software uses TIKR platform to fetch the data. It requires a paid membership in order to extract all historical data, although a free membership would work with restrictions. Find more information on [TIKR website](https://www.tikr.com).
+### Project Structure
+
+```
+tikr-statements-scraper/
+├── TIKR.py           # Main scraper script
+├── config.py         # Configuration file
+├── keys.py           # Statement field mappings
+├── requirements.txt  # Python dependencies
+├── sample-outputs/   # Example output files
+└── README.md
+```
+
+## Troubleshooting
+
+**Authentication Issues**: If you encounter login problems, delete the `token.tmp` file to force a fresh authentication.
+
+**Missing Data**: Free TIKR accounts have limited historical data. Consider upgrading your subscription for full access.
+
+**Parquet Export**: Requires either `pyarrow` or `fastparquet`. Install with:
+```bash
+pip install pyarrow
+```
+
+## License
+
+This project is released under the [MIT License](LICENSE).
+
+## Disclaimer
+
+This tool is for personal use only. Ensure your usage complies with TIKR's Terms of Service. The authors are not responsible for any misuse or violations of third-party terms.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
